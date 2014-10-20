@@ -3,7 +3,7 @@
 
 define('RECOMMENDATION_USERPOINTS',            'recommendation_userpoints');
 define('RECOMMENDATION_USERPOINTS_TID',        'recommendation_userpoints_tid');
-define('RECOMMENDATON__USERPOINTS_MODERATION', 'recommendation_userpoints_moderation');
+define('RECOMMENDATION_USERPOINTS_MODERATION', 'recommendation_userpoints_moderation');
 
 /**
  * Implementation of hook_node_update
