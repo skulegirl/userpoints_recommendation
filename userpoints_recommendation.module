@@ -1,0 +1,115 @@
+<?php
+
+
+define('RECOMMENDATION_USERPOINTS',            'recommendation_userpoints');
+define('RECOMMENDATION_USERPOINTS_TID',        'recommendation_userpoints_tid');
+define('RECOMMENDATON__USERPOINTS_MODERATION', 'recommendation_userpoints_moderation');
+
+/**
+ * Implementation of hook_node_update
+ */
+function userpoints_recommendation_node_update($node) {
+  _userpoints_recommendation_award_points($node);
+}
+
+/**
+ * Implementation of hook_node_insert
+ */
+function userpoints_recommendation_node_insert($node) {
+  _userpoints_recommendation_award_points($node);
+}
+
+function _userpoints_recommendation_award_points($node) {
+  if (_userpoints_recommendation_check_award($node)) {
+    $recommended_user_items = field_get_items('node', $node, 'field_ur_fellow_boondocker');
+    $recommended_user_uid = $recommended_user_items[0]['uid'];
+    //check that user actually has BDA!!!
+    $flag = flag_get_flag('boondocking_available');
+    if($flag->is_flagged($recommended_user_uid))
+    {
+      userpoints_userpointsapi(array(
+        'points'      => variable_get(RECOMMENDATION_USERPOINTS, 0),
+        'uid'         => $recommended_user_uid,
+        'operation'   => 'host recommendation by ' . $node->uid,
+        'entity_id'   => $node->nid,
+        'entity_type' => 'node',
+        'reference'   => 'recommendation',
+        'tid'         => variable_get(RECOMMENDATION_USERPOINTS_TID, 0),
+        'moderate'    => variable_get(RECOMMENDATION_USERPOINTS_MODERATION, 0),
+        )
+      );
+      // update the number of points awarded field
+      $node->field_userpoints_awarded[LANGUAGE_NONE][0]['value'] = variable_get(RECOMMENDATION_USERPOINTS, 0);
+      field_attach_update('node', $node);
+    }
+  }
+}
+
+/**
+ * Implementation of hook_userpoints
+ */
+function userpoints_recommendation_userpoints($op, $params = array()) {
+  if ($op == 'setting') {
+    $group = 'recommendation';
+    $form[$group] = array(
+      '#type'          => 'fieldset',
+      '#collapsible'   => TRUE,
+      '#collapsed'     => TRUE,
+      '#title'         => t('!Points for host recommendation', userpoints_translation()),
+    );
+
+    $form[$group][RECOMMENDATION_USERPOINTS] = array(
+      '#type'          => 'textfield',
+      '#title'         => t('!Points for host recommendation', userpoints_translation()),
+      '#default_value' => variable_get(RECOMMENDATION_USERPOINTS, 0),
+      '#size'          => 5,
+      '#maxlength'     => 5,
+    );
+
+    $form[$group][RECOMMENDATION_USERPOINTS_TID] = array(
+      '#type'          => 'select',
+      '#title'         => t('Category'),
+      '#default_value' => variable_get(RECOMMENDATION_USERPOINTS_TID, 0),
+      '#options'       => userpoints_get_categories(),
+      '#description'   => t('Recommendation points will be assigned to this category. You can modify what categories are available by modifying the <a href="!url">userpoints taxonomy</a>.', 
+        array('!url' => url('admin/structure/taxonomy/vocabulary_'. variable_get(USERPOINTS_CATEGORY_DEFAULT_VID, '')))),
+    );
+    
+    $options = array(
+      0 => t('No'),
+      1 => t('Yes'),
+    );
+
+    $form[$group][RECOMMENDATION_USERPOINTS_MODERATION] = array(
+      '#type'          => 'radios',
+      '#title'         => t('Moderation'),
+      '#default_value' => variable_get(MY_REFERRAL_USERPOINTS_MODERATION, 0),
+      '#options'       => $options,
+      '#description'   => t('Recommendation points can be moderated if moderation is set to "Yes".'),
+    );
+    
+    return $form;
+  }
+}
+
+/* Helper function
+ * Only award points for user_recommendation nodes for hosts, where no points
+ * have been awarded yet.
+ */
+
+function _userpoints_recommendation_check_award($node) {
+ if ($node->type == "user_recommendation")
+ {
+   $recommendation_type_items = field_get_items('node', $node, 'field_recommendation_type');
+   if ($recommendation_type_items[0]['value'] == 1)
+   {
+     $points_awarded_items = field_get_items('node', $node, 'field_userpoints_awarded');
+     if ($points_awarded_items[0]['value'] == 0)
+     {
+       return TRUE;
+     }
+   }
+ }
+ return FALSE;
+}
+
