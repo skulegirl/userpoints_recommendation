@@ -36,6 +36,7 @@ function _userpoints_recommendation_award_points($node) {
         'reference'   => 'recommendation',
         'tid'         => variable_get(RECOMMENDATION_USERPOINTS_TID, 0),
         'moderate'    => variable_get(RECOMMENDATION_USERPOINTS_MODERATION, 0),
+        'display'     => FALSE,
         )
       );
       // update the number of points awarded field
